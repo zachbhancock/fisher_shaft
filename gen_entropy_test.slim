@@ -1,0 +1,45 @@
+// test of genetic entropy
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 1000);	// carrying capacity
+	
+	// set up mutation
+	initializeMutationType("m1", 0.5, "f", 0.0); //neutral
+	m1.convertToSubstitution = T;
+	initializeMutationType("m2", 0.5, "g", -0.5, 0.5); //deleterious
+	m2.convertToSubstitution = F;
+	initializeMutationType("m3", 0.5, "e", 0.001); //beneficial
+	m3.convertToSubstitution = F;
+	
+	initializeGenomicElementType("g1", c(m1, m2, m3), c(0, 0.99, 0.01)); //fraction of each mut type
+	initializeGenomicElement(g1, 0, 5e6); //genome size
+	initializeMutationRate(1e-7); 
+	initializeRecombinationRate(1e-6);
+}
+
+// each individual reproduces once with someone else at random
+reproduction() {
+	subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+
+// create an initial population of 1000 individuals
+1 early() {
+	sim.addSubpop("p1", 1000);
+	log = community.createLogFile("GE_run5.txt", logInterval=100);
+	log.addCycle();
+	log.addCustomColumn("Population_size", "p1.individualCount;");
+	//log.addCustomColumn("Neutral_muts", "sim.countOfMutationsOfType(m1);");
+	log.addCustomColumn("Deleterious_muts", "sim.countOfMutationsOfType(m2);");
+	log.addCustomColumn("Beneficial_muts", "sim.countOfMutationsOfType(m3);");
+	log.addCustomColumn("Mean_fitness", "mean(p1.cachedFitness(NULL));");
+	
+	
+}
+
+// provide density-dependent selection
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+
+// finish at 50k gens
+50000 late() { sim.outputFull(); }
